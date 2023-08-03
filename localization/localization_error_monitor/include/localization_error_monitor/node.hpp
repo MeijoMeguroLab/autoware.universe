@@ -20,6 +20,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <diagnostic_msgs/msg/diagnostic_array.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
@@ -35,7 +36,7 @@ struct Ellipse
 class LocalizationErrorMonitor : public rclcpp::Node
 {
 private:
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr odom_sub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr ellipse_marker_pub_;
 
   rclcpp::TimerBase::SharedPtr timer_;
@@ -50,9 +51,9 @@ private:
   void checkLocalizationAccuracy(diagnostic_updater::DiagnosticStatusWrapper & stat);
   void checkLocalizationAccuracyLateralDirection(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
-  void onOdom(nav_msgs::msg::Odometry::ConstSharedPtr input_msg);
+  void onOdom(const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr input_msg);
   visualization_msgs::msg::Marker createEllipseMarker(
-    const Ellipse & ellipse, nav_msgs::msg::Odometry::ConstSharedPtr odom);
+    const Ellipse & ellipse, geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr odom);
   double measureSizeEllipseAlongBodyFrame(const Eigen::Matrix2d & Pinv, double theta);
   void onTimer();
 

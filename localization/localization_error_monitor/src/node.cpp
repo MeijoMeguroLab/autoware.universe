@@ -42,8 +42,9 @@ LocalizationErrorMonitor::LocalizationErrorMonitor()
   warn_ellipse_size_lateral_direction_ =
     this->declare_parameter("warn_ellipse_size_lateral_direction", 0.2);
 
-  odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "input/odom", 1, std::bind(&LocalizationErrorMonitor::onOdom, this, std::placeholders::_1));
+  odom_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+    "/localization/pose_estimator/pose_with_covariance", 1,
+    std::bind(&LocalizationErrorMonitor::onOdom, this, std::placeholders::_1));
 
   // QoS setup
   rclcpp::QoS durable_qos(1);
@@ -103,7 +104,7 @@ void LocalizationErrorMonitor::checkLocalizationAccuracyLateralDirection(
 }
 
 visualization_msgs::msg::Marker LocalizationErrorMonitor::createEllipseMarker(
-  const Ellipse & ellipse, nav_msgs::msg::Odometry::ConstSharedPtr odom)
+  const Ellipse & ellipse, geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr odom)
 {
   tf2::Quaternion quat;
   quat.setEuler(0, 0, ellipse.yaw);
@@ -122,14 +123,15 @@ visualization_msgs::msg::Marker LocalizationErrorMonitor::createEllipseMarker(
   marker.scale.x = ellipse_long_radius * 2;
   marker.scale.y = ellipse_short_radius * 2;
   marker.scale.z = 0.01;
-  marker.color.a = 0.1;
+  marker.color.a = 0.8;
   marker.color.r = 0.0;
-  marker.color.g = 0.0;
-  marker.color.b = 1.0;
+  marker.color.g = 1.0;
+  marker.color.b = 0.0;
   return marker;
 }
 
-void LocalizationErrorMonitor::onOdom(nav_msgs::msg::Odometry::ConstSharedPtr input_msg)
+void LocalizationErrorMonitor::onOdom(
+  const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr input_msg)
 {
   // create xy covariance (2x2 matrix)
   // input geometry_msgs::PoseWithCovariance contain 6x6 matrix
