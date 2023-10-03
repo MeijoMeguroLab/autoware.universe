@@ -6,6 +6,7 @@
 
   <!-- input topic name -->
   <arg name="input_pose_with_cov_name" default="in_pose_with_covariance"/>
+  <arg name="input_eagleye_pose_with_cov_name" default="in_eagleye_pose_with_covariance"/>  <!-- revice -->
   <arg name="input_twist_with_cov_name" default="in_twist_with_covariance"/>
 
   <!-- output topic name -->
@@ -19,7 +20,7 @@
 
   <node pkg="ekf_localizer" exec="ekf_localizer" name="ekf_localizer" output="screen">
     <remap from="in_pose_with_covariance" to="$(var input_pose_with_cov_name)"/>
-
+    <remap from="in_eagleye_pose_with_covariance" to="$(var input_eagleye_pose_with_cov_name)"/>  <!-- revice -->
     <remap from="in_twist_with_covariance" to="$(var input_twist_with_cov_name)"/>
 
     <remap from="initialpose" to="$(var input_initial_pose_name)"/>

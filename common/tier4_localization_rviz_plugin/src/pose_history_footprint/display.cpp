@@ -70,7 +70,7 @@ PoseHistoryFootprint::PoseHistoryFootprint() : last_stamp_(0, 0, RCL_ROS_TIME)
 
   updateVehicleInfo();
 }
-
+// revice
 PoseHistoryFootprint::~PoseHistoryFootprint()
 {
   if (initialized()) {

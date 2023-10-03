@@ -130,6 +130,8 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr sub_initialpose_;
   //!< @brief measurement pose with covariance subscriber
   rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr sub_pose_with_cov_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+    sub_eagleye_pose_with_cov_;  // revice
   //!< @brief measurement twist with covariance subscriber
   rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr
     sub_twist_with_cov_;
@@ -170,6 +172,7 @@ private:
   AgedObjectQueue<geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr> pose_queue_;
   AgedObjectQueue<geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr> twist_queue_;
 
+  geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr eagleye_msg;  // revice
   geometry_msgs::msg::PoseStamped current_ekf_pose_;  //!< @brief current estimated pose
   geometry_msgs::msg::PoseStamped
     current_biased_ekf_pose_;  //!< @brief current estimated pose without yaw bias correction
@@ -191,6 +194,12 @@ private:
    * @brief set poseWithCovariance measurement
    */
   void callbackPoseWithCovariance(geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+
+  /**
+   * @brief set eagleyeposeWithCovariance measurement
+   */
+  void callbackEagleyePoseWithCovariance(
+    geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
 
   /**
    * @brief set twistWithCovariance measurement

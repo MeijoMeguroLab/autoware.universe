@@ -91,6 +91,9 @@ EKFLocalizer::EKFLocalizer(const std::string & node_name, const rclcpp::NodeOpti
     "initialpose", 1, std::bind(&EKFLocalizer::callbackInitialPose, this, _1));
   sub_pose_with_cov_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
     "in_pose_with_covariance", 1, std::bind(&EKFLocalizer::callbackPoseWithCovariance, this, _1));
+  sub_eagleye_pose_with_cov_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+    "in_eagleye_pose_with_covariance", 1,
+    std::bind(&EKFLocalizer::callbackEagleyePoseWithCovariance, this, _1)); /* revice */
   sub_twist_with_cov_ = create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
     "in_twist_with_covariance", 1, std::bind(&EKFLocalizer::callbackTwistWithCovariance, this, _1));
   service_trigger_node_ = create_service<std_srvs::srv::SetBool>(
@@ -347,6 +350,21 @@ void EKFLocalizer::callbackPoseWithCovariance(
   pose_queue_.push(msg);
 }
 
+/*
+ * callbackEagleyePoseWithCovariance revice
+ */
+
+void EKFLocalizer::callbackEagleyePoseWithCovariance(
+  geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
+{
+  if (!is_activated_) {
+    return;
+  }
+
+  pose_queue_.push(msg);
+  // eagleye_msg = msg;
+  // std::cout << "eagleye" << std::endl;
+}
 /*
  * callbackTwistWithCovariance
  */
