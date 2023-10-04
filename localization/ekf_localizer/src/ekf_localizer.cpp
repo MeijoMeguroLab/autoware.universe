@@ -343,10 +343,20 @@ void EKFLocalizer::callbackInitialPose(
 void EKFLocalizer::callbackPoseWithCovariance(
   geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
 {
+  tf2::Quaternion quat;
+  tf2::fromMsg(msg->pose.pose.orientation, quat);
+
+  tf2::Matrix3x3 mat(quat);
+  mat.getRPY(ndt_roll, ndt_pitch, ndt_yaw);
+
+  tf2::Quaternion new_quat;
+  new_quat.setRPY(ndt_roll, ndt_pitch, ndt_yaw);
+
+  msg->pose.pose.orientation = tf2::toMsg(new_quat);
+
   if (!is_activated_) {
     return;
   }
-
   pose_queue_.push(msg);
 }
 
@@ -357,13 +367,23 @@ void EKFLocalizer::callbackPoseWithCovariance(
 void EKFLocalizer::callbackEagleyePoseWithCovariance(
   geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
 {
+  // eagleye_msg = msg;
+  // eagleye_msg->pose.pose.position.x = ndt_msg->pose.pose.position.x;
+  tf2::Quaternion quat;
+  tf2::fromMsg(msg->pose.pose.orientation, quat);
+
+  tf2::Matrix3x3 mat(quat);
+  mat.getRPY(eagleye_roll, eagleye_pitch, eagleye_yaw);
+
+  tf2::Quaternion new_quat;
+  new_quat.setRPY(eagleye_roll, ndt_pitch, eagleye_yaw);
+
+  msg->pose.pose.orientation = tf2::toMsg(new_quat);
+
   if (!is_activated_) {
     return;
   }
-
   pose_queue_.push(msg);
-  // eagleye_msg = msg;
-  // std::cout << "eagleye" << std::endl;
 }
 /*
  * callbackTwistWithCovariance
