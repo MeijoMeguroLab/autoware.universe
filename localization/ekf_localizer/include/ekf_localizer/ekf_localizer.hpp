@@ -167,18 +167,20 @@ private:
   double proc_cov_yaw_bias_d_;  //!< @brief  discrete yaw bias process noise
   double proc_cov_vx_d_;        //!< @brief  discrete process noise in d_vx=0
   double proc_cov_wz_d_;        //!< @brief  discrete process noise in d_wz=0
-  double ndt_roll, ndt_pitch, ndt_yaw;              // revice
-  double eagleye_roll, eagleye_pitch, eagleye_yaw;  // revice
 
   bool is_activated_;
 
   AgedObjectQueue<geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr> pose_queue_;
   AgedObjectQueue<geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr> twist_queue_;
 
-  // geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr eagleye_msg;  // revice
-  // geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr ndt_msg;      // revice
-  geometry_msgs::msg::Quaternion::SharedPtr eagleye_msg;  // revice
-  geometry_msgs::msg::Quaternion::SharedPtr ndt_msg;      // revice
+  geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr eagleye_msg;  // revice
+  geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr ndt_msg;      // revice
+  // geometry_msgs::msg::Quaternion::SharedPtr eagleye_msg;  // revice
+  // geometry_msgs::msg::Quaternion::SharedPtr ndt_msg;      // revice
+  double ndt_across_error, ndt_along_error, eagleye_across_error, eagleye_along_error;
+  bool calculateEllipseError(
+    const geometry_msgs::msg::PoseWithCovarianceStamped & pose_msg, double & across_error,
+    double & along_error);
   geometry_msgs::msg::PoseStamped current_ekf_pose_;  //!< @brief current estimated pose
   geometry_msgs::msg::PoseStamped
     current_biased_ekf_pose_;  //!< @brief current estimated pose without yaw bias correction

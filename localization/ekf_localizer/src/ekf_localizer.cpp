@@ -337,57 +337,118 @@ void EKFLocalizer::callbackInitialPose(
   initSimple1DFilters(*initialpose);
 }
 
-/*
- * callbackPoseWithCovariance
- */
+bool EKFLocalizer::calculateEllipseError(
+  const geometry_msgs::msg::PoseWithCovarianceStamped & pose_msg, double & across_error,
+  double & along_error)
+{
+  double chi = 9.21;
+  Eigen::Matrix2d cov_2d;
+  cov_2d(0, 0) = pose_msg.pose.covariance[0];
+  cov_2d(0, 1) = pose_msg.pose.covariance[1];
+  cov_2d(1, 0) = pose_msg.pose.covariance[6];
+  cov_2d(1, 1) = pose_msg.pose.covariance[7];
+  if (cov_2d.determinant() == 0.0) {
+    return false;
+  }
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver(cov_2d);
+  double ellipse_long_radius = std::sqrt(eigensolver.eigenvalues()(1) * chi);
+  double ellipse_short_radius = std::sqrt(eigensolver.eigenvalues()(0) * chi);
+  const Eigen::Vector2d pc_vector = eigensolver.eigenvectors().col(1);
+  double ellipse_yaw = std::atan2(pc_vector.y(), pc_vector.x());
+  tf2::Quaternion q_pose;
+  q_pose.setX(pose_msg.pose.pose.orientation.x);
+  q_pose.setY(pose_msg.pose.pose.orientation.y);
+  q_pose.setZ(pose_msg.pose.pose.orientation.z);
+  q_pose.setW(pose_msg.pose.pose.orientation.w);
+  double roll, pitch, yaw;
+  tf2::Matrix3x3(q_pose).getRPY(roll, pitch, yaw);
+  double A, B, C;
+  Eigen::Matrix2d P;
+  Eigen::Vector2d e;
+  Eigen::MatrixXd along_tmp, across_tmp;
+  A = (std::pow(ellipse_short_radius * cos(ellipse_yaw), 2) +
+       std::pow(ellipse_long_radius * sin(ellipse_yaw), 2)) /
+      std::pow(ellipse_long_radius * ellipse_short_radius, 2);
+  B = (std::pow(ellipse_short_radius, 2) * cos(ellipse_yaw) * sin(ellipse_yaw) -
+       std::pow(ellipse_long_radius, 2) * cos(ellipse_yaw) * sin(ellipse_yaw)) /
+      std::pow(ellipse_long_radius * ellipse_short_radius, 2);
+  C = (std::pow(ellipse_short_radius * sin(ellipse_yaw), 2) +
+       std::pow(ellipse_long_radius * cos(ellipse_yaw), 2)) /
+      std::pow(ellipse_long_radius * ellipse_short_radius, 2);
+  P << A, B, B, C;
+  e << cos(yaw), sin(yaw);
+  across_tmp = e.transpose() * P * e / P.determinant();
+  across_error = std::sqrt(across_tmp(0, 0));
+  e << cos(yaw + M_PI / 2), sin(yaw + M_PI / 2);
+  along_tmp = e.transpose() * P * e / P.determinant();
+  along_error = std::sqrt(along_tmp(0, 0));
+  return true;
+}
+
+// /*
+//  * callbackNDTPoseWithCovariance
+//  */
+// void EKFLocalizer::callbackPoseWithCovariance(
+//   geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
+// {
+//   if (!is_activated_) {
+//     return;
+//   }
+//   pose_queue_.push(msg);
+// }
+// /*
+//  * callbackEagleyePoseWithCovariance
+//  */
+// void EKFLocalizer::callbackEagleyePoseWithCovariance(
+//   geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
+// {
+//   if (!is_activated_) {
+//     return;
+//   }
+//   pose_queue_.push(msg);
+// }
+
 void EKFLocalizer::callbackPoseWithCovariance(
   geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
 {
-  tf2::Quaternion quat;
-  tf2::fromMsg(msg->pose.pose.orientation, quat);
-
-  tf2::Matrix3x3 mat(quat);
-  mat.getRPY(ndt_roll, ndt_pitch, ndt_yaw);
-
-  tf2::Quaternion new_quat;
-  new_quat.setRPY(ndt_roll, ndt_pitch, ndt_yaw);
-
-  msg->pose.pose.orientation = tf2::toMsg(new_quat);
-
-  if (!is_activated_) {
-    return;
+  calculateEllipseError(*msg, ndt_across_error, ndt_along_error);
+  if (!eagleye_msg) {
+    if (!is_activated_) {
+      return;
+    }
+    pose_queue_.push(msg);
   }
-  pose_queue_.push(msg);
+
+  else if (eagleye_msg && ndt_across_error < 0.3 && ndt_along_error < 0.3) {
+    if (!is_activated_) {
+      return;
+    }
+    pose_queue_.push(msg);
+  }
 }
 
-/*
- * callbackEagleyePoseWithCovariance revice
- */
+// /*
+//  * callbackEagleyePoseWithCovariance revice
+//  */
 
 void EKFLocalizer::callbackEagleyePoseWithCovariance(
   geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
 {
-  // eagleye_msg = msg;
-  // eagleye_msg->pose.pose.position.x = ndt_msg->pose.pose.position.x;
-  tf2::Quaternion quat;
-  tf2::fromMsg(msg->pose.pose.orientation, quat);
-
-  tf2::Matrix3x3 mat(quat);
-  mat.getRPY(eagleye_roll, eagleye_pitch, eagleye_yaw);
-
-  tf2::Quaternion new_quat;
-  new_quat.setRPY(eagleye_roll, ndt_pitch, eagleye_yaw);
-
-  msg->pose.pose.orientation = tf2::toMsg(new_quat);
-
-  if (!is_activated_) {
+  eagleye_msg = msg;
+  calculateEllipseError(*msg, ndt_across_error, ndt_along_error);
+  if (msg == nullptr || !calculateEllipseError(*msg, eagleye_across_error, eagleye_along_error))
     return;
+  if (eagleye_across_error < 0.2 || eagleye_along_error < 0.2) {
+    if (!is_activated_) {
+      return;
+    }
+    pose_queue_.push(msg);
   }
-  pose_queue_.push(msg);
 }
 /*
  * callbackTwistWithCovariance
  */
+
 void EKFLocalizer::callbackTwistWithCovariance(
   geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg)
 {
